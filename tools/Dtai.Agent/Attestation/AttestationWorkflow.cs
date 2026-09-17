@@ -22,24 +22,25 @@ public sealed class AttestationWorkflow
         this.hashicorpProvider = hashicorpProvider ?? throw new ArgumentNullException(nameof(hashicorpProvider));
     }
 
-    public KeyRetrievalResult Run(Action<string> reportProgress)
+    public KeyRetrievalResult Run(string recipientJwk, Action<string> reportProgress)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(recipientJwk);
         ArgumentNullException.ThrowIfNull(reportProgress);
 
         reportProgress("Fetch TEE evidence from the CVM");
-        var evidence = evidenceProvider.FetchEvidence();
+        var evidence = evidenceProvider.FetchEvidence(recipientJwk);
 
         reportProgress("Submit the evidence to MAA to get a token");
         var maaToken = maaService.Attest(evidence);
 
         reportProgress("Submit the request for K1 to Azure KeyVault");
-        var k1 = keyVaultProvider.GetK1(maaToken);
+        var k1 = keyVaultProvider.ReleaseK1(maaToken);
 
         reportProgress("Submit the evidence to ITA attestation service");
         var itaToken = itaService.Attest(evidence);
 
         reportProgress("Submit the request to Hashicorp to get K2");
-        var k2 = hashicorpProvider.GetK2(itaToken);
+        var k2 = hashicorpProvider.ReleaseK2(itaToken);
 
         return new KeyRetrievalResult(k1, k2);
     }

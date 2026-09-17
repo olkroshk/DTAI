@@ -15,5 +15,12 @@
     <None Include="..\..\samples\demo\K1.pfx" Link="K1.pfx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\samples\demo\K2-public.pem" Link="K2-public.pem" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\samples\demo\K2.pfx" Link="K2.pfx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Attestation\attestation.settings.local.json" Link="Attestation\attestation.settings.local.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Attestation\Evidence\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Identity" Version="1.17.0" />
+    <PackageReference Include="Azure.Security.KeyVault.Keys" Version="4.8.0" />
   </ItemGroup>
 </Project>

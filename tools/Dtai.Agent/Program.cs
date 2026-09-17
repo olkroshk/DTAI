@@ -11,6 +11,7 @@ const string K1PrivateName = "K1.pfx";
 const string K2PrivateName = "K2.pfx";
 const string EncryptedDekName = "encrypted-dek.txt";
 const string ResultDekName = "result-dek.txt";
+const string AttestationSettingsName = "attestation.settings.local.json";
 const int DekLength = 32;
 const int NonceLength = 12;
 const int TagLength = 16;
@@ -27,6 +28,13 @@ try
     }
 
     var command = args[0];
+    if (string.Equals(command, "--help", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(command, "-h", StringComparison.OrdinalIgnoreCase))
+    {
+        ShowUsage();
+        return 0;
+    }
+
     if (string.Equals(command, "generate", StringComparison.OrdinalIgnoreCase))
     {
         if (args.Length > 2)
@@ -181,6 +189,13 @@ int EncryptCommand(string[] commandArgs)
 int DecryptCommand(string[] commandArgs)
 {
     var options = ParseOptions(commandArgs, "-EncryptedDEK", "-EncryptedModel");
+    var settings = AttestationSettings.Load(FindAttestationSettingsPath());
+    if (!settings.UseDemoMode)
+    {
+        throw new InvalidDataException(
+            $"Azure SKR is configured for Key Vault '{settings.KeyVaultName}' and key '{settings.KeyName}', but native key_hsm unwrapping is not yet available in this client.");
+    }
+
     var encryptedDekPath = Path.GetFullPath(options["-EncryptedDEK"]);
     var encryptedModelPath = Path.GetFullPath(options["-EncryptedModel"]);
     var resultModelPath = Path.Combine(
@@ -194,15 +209,7 @@ int DecryptCommand(string[] commandArgs)
     {
         var recoveredModel = DecryptModelContainer(File.ReadAllBytes(encryptedModelPath), recoveredDek);
 
-        Console.WriteLine("Demo-only simulation: no attestation or remote key retrieval is performed; decryption uses local PFX files.");
-        var workflow = new AttestationWorkflow(
-            new TeeEvidenceProvider(),
-            new MaaAttestationService(),
-            new KeyVaultKeyProvider(),
-            new ItaAttestationService(),
-            new HashicorpKeyProvider());
-        // Demo key references are placeholders and are not used for local decryption.
-        _ = workflow.Run(WriteDecryptProgress);
+        Console.WriteLine("No Key Vault is configured. Falling back to demo-only mode with local fixtures instead of harvesting actual evidence from the TEE; decryption uses local PFX files.");
 
         WriteStaged(resultDekPath, recoveredDekFileBytes);
         WriteStaged(resultModelPath, recoveredModel);
@@ -469,18 +476,23 @@ void WriteStaged(string path, byte[] bytes)
 
 string RemoveEncryptedPrefix(string fileName) => fileName.StartsWith("e-", StringComparison.OrdinalIgnoreCase) ? fileName[2..] : fileName;
 
+string FindAttestationSettingsPath()
+{
+    var currentDirectoryPath = Path.Combine(Environment.CurrentDirectory, AttestationSettingsName);
+    if (File.Exists(currentDirectoryPath))
+    {
+        return currentDirectoryPath;
+    }
+
+    return Path.Combine(AppContext.BaseDirectory, "Attestation", AttestationSettingsName);
+}
+
 void WriteSuccessLine(string message)
 {
     var priorColor = Console.ForegroundColor;
     Console.ForegroundColor = ConsoleColor.Green;
     Console.WriteLine(message);
     Console.ForegroundColor = priorColor;
-}
-
-void WriteDecryptProgress(string message)
-{
-    Console.WriteLine(message);
-    Thread.Sleep(1000);
 }
 
 byte[] Combine(params byte[][] parts)

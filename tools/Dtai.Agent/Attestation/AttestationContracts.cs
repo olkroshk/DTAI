@@ -1,16 +1,34 @@
 namespace Dtai.Agent.Attestation;
 
-public sealed record TeeEvidence(string Value);
+public sealed record TeeEvidence(string Value)
+{
+    public string Value { get; } = RequireValue(Value, nameof(Value));
 
-public sealed record AttestationToken(string Value);
+    private static string RequireValue(string value, string parameterName) =>
+        string.IsNullOrWhiteSpace(value) ? throw new ArgumentException("Value cannot be empty.", parameterName) : value;
+}
 
-public sealed record KeyReference(string Value);
+public sealed record AttestationToken(string Value)
+{
+    public string Value { get; } = RequireValue(Value, nameof(Value));
 
-public sealed record KeyRetrievalResult(KeyReference K1, KeyReference K2);
+    private static string RequireValue(string value, string parameterName) =>
+        string.IsNullOrWhiteSpace(value) ? throw new ArgumentException("Value cannot be empty.", parameterName) : value;
+}
+
+public sealed record SignedKeyRelease(string Value)
+{
+    public string Value { get; } = RequireValue(Value, nameof(Value));
+
+    private static string RequireValue(string value, string parameterName) =>
+        string.IsNullOrWhiteSpace(value) ? throw new ArgumentException("Value cannot be empty.", parameterName) : value;
+}
+
+public sealed record KeyRetrievalResult(SignedKeyRelease K1, SignedKeyRelease K2);
 
 public interface ITeeEvidenceProvider
 {
-    TeeEvidence FetchEvidence();
+    TeeEvidence FetchEvidence(string recipientJwk);
 }
 
 public interface IMaaAttestationService
@@ -20,7 +38,7 @@ public interface IMaaAttestationService
 
 public interface IKeyVaultKeyProvider
 {
-    KeyReference GetK1(AttestationToken token);
+    SignedKeyRelease ReleaseK1(AttestationToken token);
 }
 
 public interface IItaAttestationService
@@ -30,5 +48,5 @@ public interface IItaAttestationService
 
 public interface IHashicorpKeyProvider
 {
-    KeyReference GetK2(AttestationToken token);
+    SignedKeyRelease ReleaseK2(AttestationToken token);
 }

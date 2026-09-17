@@ -21,6 +21,7 @@ The DEK is never stored by either authority and is not written by the module.
 
 ## Components
 
+- Agent implementation and local-run details: [tools/Dtai.Agent/README.md](tools/Dtai.Agent/README.md).
 - `tools/Dtai.DemoGenerator` — the only code project in this repository and the
   sole project in `Dtai.sln`. It generates the deliberately public,
   **demo-only** fixtures under `samples/demo`.
